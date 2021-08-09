@@ -1,7 +1,7 @@
 import java.util.Arrays;
 import java.util.Random;
 
-public class SortAlgorithm {
+public class BubbleAlgorithm {
 
     static int[] ints = new int[20];
 
