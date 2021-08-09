@@ -1,3 +1,5 @@
+package mergesort;
+
 public class MergeSort extends SortInvoke {
 
     public void merge(SortBean sortBean, Object[] arrays, int left, int mid, int right, Object[] temp) {

@@ -1,3 +1,5 @@
+package mergesort;
+
 public class SortBean {
 
     public final static int TYPE_INT = 1;
@@ -25,7 +27,7 @@ public class SortBean {
         this.sortType = sortType;
         this.ifReserve = ifReserve;
         if (sortType < 1 || sortType > 4){
-            throw new Exception("SortBean.sortType must in 1 ~ 4");
+            throw new Exception("mergesort.SortBean.sortType must in 1 ~ 4");
         }
     }
 
