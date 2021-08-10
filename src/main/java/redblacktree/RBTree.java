@@ -70,9 +70,9 @@ public class RBTree<K extends Comparable<K>, V> {
                 x.setValue(node.getValue());
                 return;
             } else if (i > 0) {
-                x = x.right;
+                x = x.getRight();
             } else {
-                x = x.left;
+                x = x.getLeft();
             }
         }
 
