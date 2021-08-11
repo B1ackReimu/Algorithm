@@ -50,6 +50,21 @@ public class RBTree<K extends Comparable<K>, V> {
         }
     }
 
+    private RBNode<K, V> searchNode(K key) {
+        RBNode<K, V> node = this.root;
+        while (node != null) {
+            int i = key.compareTo(node.getKey());
+            if (i == 0) {
+                return node;
+            } else if (i < 0) {
+                node = node.getLeft();
+            } else {
+                node = node.getRight();
+            }
+        }
+        return null;
+    }
+
     public void insert(K key, V value) {
         RBNode<K, V> node = new RBNode<>();
         node.setKey(key);
@@ -149,6 +164,94 @@ public class RBTree<K extends Comparable<K>, V> {
                 }
             }
         }
+    }
+
+    public void delete(K key) {
+        RBNode<K, V> node = searchNode(key);
+        delete(node);
+    }
+
+    private void delete(RBNode<K, V> node) {
+        if (node == null) {
+            return;
+        }
+        if (node != root && node.getRight() == null && node.getLeft() == null) {
+            if (node == node.getParent().getLeft()) {
+                node.getParent().setLeft(null);
+            } else {
+                node.getParent().setRight(null);
+            }
+        }
+        if ((node.getRight() == null && node.getLeft() != null) || (node.getRight() != null && node.getLeft() == null)) {
+            if (node.getLeft() != null) {
+                if (node != root) {
+                    node.getLeft().setParent(node.getParent());
+                    if (node == node.getParent().getLeft()) {
+                        node.getParent().setLeft(node.getLeft());
+                    } else {
+                        node.getParent().setRight(node.getLeft());
+                    }
+                } else {
+                    node.getLeft().setParent(null);
+                }
+                setBlack(node.getLeft());
+            } else {
+                if (node != root) {
+                    node.getRight().setParent(node.getParent());
+                    if (node == node.getParent().getLeft()) {
+                        node.getParent().setLeft(node.getRight());
+                    } else {
+                        node.getParent().setRight(node.getRight());
+                    }
+                } else {
+                    node.getRight().setParent(null);
+                }
+                setBlack(node.getRight());
+            }
+        }
+        if (node.getRight() != null && node.getLeft() != null) {
+            RBNode<K, V> rightMin = rightMin(node);
+            cloneNode(node, rightMin);
+            delete(rightMin);
+        }
+    }
+
+    private RBNode<K, V> precursorNode(RBNode<K, V> node) {
+        RBNode<K, V> x = node.getLeft();
+        if (x != null) {
+            while (x != null) {
+                node = x;
+                x = x.getRight();
+            }
+        } else {
+            if (node.getParent() == null) {
+                return null;
+            }
+            if (node == node.getParent().getRight()) {
+                node = node.getParent();
+            } else {
+                node = node.getParent().getParent();
+            }
+        }
+        return node;
+    }
+
+    private RBNode<K, V> rightMin(RBNode<K, V> node) {
+        RBNode<K, V> x = node.getRight();
+        while (x != null) {
+            node = x;
+            x = x.getLeft();
+        }
+        return node;
+    }
+
+    private void cloneNode(RBNode<K, V> dest, RBNode<K, V> origin) {
+        dest.setParent(origin.getParent());
+        dest.setRight(origin.getRight());
+        dest.setLeft(origin.getLeft());
+        dest.setColor(origin.isColor());
+        dest.setValue(origin.getValue());
+        dest.setKey(origin.key);
     }
 
     /**
