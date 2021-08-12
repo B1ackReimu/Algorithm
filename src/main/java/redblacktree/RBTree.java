@@ -175,44 +175,50 @@ public class RBTree<K extends Comparable<K>, V> {
         if (node == null) {
             return;
         }
-        if (node != root && node.getRight() == null && node.getLeft() == null) {
-            if (node == node.getParent().getLeft()) {
-                node.getParent().setLeft(null);
-            } else {
-                node.getParent().setRight(null);
-            }
-        }
-        if ((node.getRight() == null && node.getLeft() != null) || (node.getRight() != null && node.getLeft() == null)) {
-            if (node.getLeft() != null) {
-                if (node != root) {
-                    node.getLeft().setParent(node.getParent());
-                    if (node == node.getParent().getLeft()) {
-                        node.getParent().setLeft(node.getLeft());
-                    } else {
-                        node.getParent().setRight(node.getLeft());
-                    }
-                } else {
-                    node.getLeft().setParent(null);
-                }
-                setBlack(node.getLeft());
-            } else {
-                if (node != root) {
-                    node.getRight().setParent(node.getParent());
-                    if (node == node.getParent().getLeft()) {
-                        node.getParent().setLeft(node.getRight());
-                    } else {
-                        node.getParent().setRight(node.getRight());
-                    }
-                } else {
-                    node.getRight().setParent(null);
-                }
-                setBlack(node.getRight());
-            }
-        }
         if (node.getRight() != null && node.getLeft() != null) {
             RBNode<K, V> rightMin = rightMin(node);
             cloneNode(node, rightMin);
-            delete(rightMin);
+            node = rightMin;
+        }
+
+        RBNode<K, V> child;
+        if ((child = node.getLeft()) != null) {
+            child.setParent(node.getParent());
+        } else if ((child = node.getRight()) != null) {
+            child.setParent(node.getParent());
+        }
+
+        if (node.getParent() == null) {
+            root = child;
+        } else if (node == node.getParent().getLeft()) {
+            node.getParent().setLeft(child);
+        } else {
+            node.getParent().setRight(child);
+        }
+
+        deleteFixUp(node);
+    }
+
+    private void deleteFixUp(RBNode<K, V> node) {
+        if (isRed(node)) {
+            return;
+        } else if (isBlack(node)) {
+            if (node.getLeft() != null && node.getRight() == null) {
+                setBlack(node.getLeft());
+            } else if (node.getLeft() == null && node.getRight() != null) {
+                setBlack(node.getRight());
+            }else {
+                RBNode<K, V> cousin = getCousin(node);
+            }
+        }
+
+    }
+
+    private RBNode<K,V> getCousin(RBNode<K,V> node) {
+        if (node == node.getParent().getLeft()){
+            return node.getParent().getRight();
+        }else {
+            return node.getParent().getLeft();
         }
     }
 
@@ -246,10 +252,6 @@ public class RBTree<K extends Comparable<K>, V> {
     }
 
     private void cloneNode(RBNode<K, V> dest, RBNode<K, V> origin) {
-        dest.setParent(origin.getParent());
-        dest.setRight(origin.getRight());
-        dest.setLeft(origin.getLeft());
-        dest.setColor(origin.isColor());
         dest.setValue(origin.getValue());
         dest.setKey(origin.key);
     }
