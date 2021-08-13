@@ -168,13 +168,13 @@ public class RBTree<K extends Comparable<K>, V> {
 
     public void delete(K key) {
         RBNode<K, V> node = searchNode(key);
+        if (node == null) {
+            return;
+        }
         delete(node);
     }
 
     private void delete(RBNode<K, V> node) {
-        if (node == null) {
-            return;
-        }
         if (node.getRight() != null && node.getLeft() != null) {
             RBNode<K, V> rightMin = rightMin(node);
             cloneNode(node, rightMin);
@@ -200,24 +200,79 @@ public class RBTree<K extends Comparable<K>, V> {
     }
 
     private void deleteFixUp(RBNode<K, V> node) {
-        if (isRed(node)) {
-            return;
-        } else if (isBlack(node)) {
-            if (node.getLeft() != null && node.getRight() == null) {
+        if (isBlack(node)) {
+            if (node.getLeft() != null) {
                 setBlack(node.getLeft());
-            } else if (node.getLeft() == null && node.getRight() != null) {
+            } else if (node.getRight() != null) {
                 setBlack(node.getRight());
-            }else {
+            } else {
+                RBNode<K, V> parent = node.getParent();
                 RBNode<K, V> cousin = getCousin(node);
+                if (isBlack(cousin)) {
+                    deleteFixUp2(parent, cousin);
+                } else {
+                    if (cousin == parent.getLeft()) {
+                        rightRotate(cousin);
+                    } else {
+                        leftRotate(cousin);
+                    }
+                    boolean color = cousin.isColor();
+                    cousin.setColor(parent.isColor());
+                    parent.setColor(color);
+                }
             }
         }
 
     }
 
-    private RBNode<K,V> getCousin(RBNode<K,V> node) {
-        if (node == node.getParent().getLeft()){
+    private void deleteFixUp2(RBNode<K, V> parent, RBNode<K, V> cousin) {
+        if ((cousin.getLeft() == null && cousin.getRight() == null) || (isBlack(cousin.getLeft()) && isBlack(cousin.getRight()))) {
+            setRed(cousin);
+            if (isRed(parent)) {
+                setBlack(parent);
+            } else {
+                deleteFixUp(parent);
+            }
+        } else {
+            boolean color = cousin.isColor();
+            if (parent.getLeft() == cousin) {
+                if (isBlack(cousin.getLeft())) {
+                    leftRotate(cousin);
+                    cousin.setColor(cousin.getRight().isColor());
+                    cousin.getRight().setColor(color);
+                }
+                deleteFixUp2221(parent, cousin);
+            } else {
+                if (isBlack(cousin.getRight())) {
+                    rightRotate(cousin);
+                    cousin.setColor(cousin.getLeft().isColor());
+                    cousin.getLeft().setColor(color);
+                }
+                deleteFixUp2222(parent, cousin);
+            }
+        }
+    }
+
+    private void deleteFixUp2221(RBNode<K, V> parent, RBNode<K, V> cousin) {
+        rightRotate(parent);
+        boolean color = cousin.isColor();
+        cousin.setColor(parent.isColor());
+        parent.setColor(color);
+        setBlack(cousin.getLeft());
+    }
+
+    private void deleteFixUp2222(RBNode<K, V> parent, RBNode<K, V> cousin) {
+        leftRotate(parent);
+        boolean color = cousin.isColor();
+        cousin.setColor(parent.isColor());
+        parent.setColor(color);
+        setBlack(cousin.getRight());
+    }
+
+    private RBNode<K, V> getCousin(RBNode<K, V> node) {
+        if (node == node.getParent().getLeft()) {
             return node.getParent().getRight();
-        }else {
+        } else {
             return node.getParent().getLeft();
         }
     }
@@ -256,48 +311,38 @@ public class RBTree<K extends Comparable<K>, V> {
         dest.setKey(origin.key);
     }
 
-    /**
-     * 将x的左子节点的父节点更新成y，将y的右子节点更新为x的左子节点
-     * 将y的父节点的子节点更新为x，将y的父节点更新为x，将x的左子节点更新为y
-     */
     private void leftRotate(RBNode<K, V> x) {
-        RBNode<K, V> y = x.getParent();
+        RBNode<K, V> y = x.getRight();
         if (y == null) {
             return;
         }
-        x.getLeft().setParent(y);
-        y.setRight(x.getLeft());
-        if (y.getParent() == null) {
-            this.root = x;
-        } else if (y == y.getParent().getLeft()) {
-            y.getParent().setLeft(x);
+        x.setRight(y.getLeft());
+        y.getLeft().setParent(x);
+        y.setParent(x.getParent());
+        if (x.getParent() == null) {
+            this.root = y;
+        } else if (x == x.getParent().getLeft()) {
+            x.getParent().setLeft(y);
         } else {
-            y.getParent().setRight(x);
+            x.getParent().setRight(y);
         }
-        x.setLeft(y);
-        y.setParent(x);
     }
 
-    /**
-     * 将x的右子节点的父节点更新为y，将y的左子节点更新为x的右子节点
-     * 将y的父节点的子节点更新为x，将y的父节点更新为x，将x的右子节点更新为y
-     */
     private void rightRotate(RBNode<K, V> x) {
-        RBNode<K, V> y = x.getParent();
+        RBNode<K, V> y = x.getLeft();
         if (y == null) {
             return;
         }
-        x.getRight().setParent(y);
-        y.setLeft(x.getRight());
-        if (y.getParent() == null) {
-            this.root = x;
-        } else if (y == y.getParent().getLeft()) {
-            y.getParent().setLeft(x);
+        x.setLeft(y.getRight());
+        y.getRight().setParent(x);
+        y.setParent(x.getParent());
+        if (x.getParent() == null) {
+            this.root = y;
+        } else if (x == x.getParent().getLeft()) {
+            x.getParent().setLeft(y);
         } else {
-            y.getParent().setRight(x);
+            x.getParent().setRight(y);
         }
-        x.setRight(y);
-        y.setParent(x);
     }
 
     private void print(RBNode<K, V> tree, K key, int direction) {
