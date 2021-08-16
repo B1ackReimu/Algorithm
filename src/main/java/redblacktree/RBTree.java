@@ -93,6 +93,7 @@ public class RBTree<K extends Comparable<K>, V> {
 
         if (parent == null) {
             this.root = node;
+            setBlack(node);
             return;
         }
 
@@ -151,6 +152,7 @@ public class RBTree<K extends Comparable<K>, V> {
                     setBlack(uncle);
                     setRed(gParent);
                     insertFixUp(gParent);
+                    return;
                 }
                 if (uncle == null || isBlack(uncle)) {
                     if (node == parent.getRight()) {
