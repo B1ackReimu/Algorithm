@@ -320,7 +320,7 @@ java.util.ArrayList#removeAll 从此ArrayList中删除包含在指定集合中�
             }
         }
         if (modCount != expectedModCount) {
-            throw new ConcurrentModificationException();
+            throw new ConcurrentModificationException(); //并发修改异常
         }
 
         // shift surviving elements left over the spaces left by removed elements
