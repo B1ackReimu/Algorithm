@@ -1,0 +1,345 @@
+java.util.Collection#toArray()返回的是一个新的数组
+modCount结构修改次数
+add(E e)将指定元素附加到该list结尾
+public boolean add(E e) {
+        ensureCapacityInternal(size + 1);  // Increments modCount!! size是arraylist的大小也是包含的元素数量
+        elementData[size++] = e;
+        return true;
+    }
+
+ensureCapacityInternal确保内部容量，minCapacity是需要增长的最小容量
+private void ensureCapacityInternal(int minCapacity) {
+        ensureExplicitCapacity(calculateCapacity(elementData, minCapacity));
+    }
+
+calculateCapacity计算容量：如果元素数据组数是默认大小的空数组实例，则比较DEFAULT_CAPACITY和minCapacity
+返回最大的那一个。如果元素数据数组不是默认大小的空数组实例，则返回minCapacity
+private static int calculateCapacity(Object[] elementData, int minCapacity) {
+        if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA) {
+            return Math.max(DEFAULT_CAPACITY, minCapacity);
+        }
+        return minCapacity;
+    }
+
+ensureExplicitCapacity确保显式容量
+    private void ensureExplicitCapacity(int minCapacity) {
+        modCount++; //结构修改次数自增
+
+        // overflow-conscious code
+        if (minCapacity - elementData.length > 0) //如果minCapacity比元素数据数组长度大则增长
+            grow(minCapacity);
+    }
+
+grow增加容量以确保它至少可以容纳最小容量参数指定的元素数量
+    private void grow(int minCapacity) {
+        // overflow-conscious code
+        int oldCapacity = elementData.length;
+        int newCapacity = oldCapacity + (oldCapacity >> 1); //新容量=旧容量+(旧容量/2)
+        if (newCapacity - minCapacity < 0) //如果扩容所需最小容量比新容量大，则新容量赋值为扩容所需最小容量
+            newCapacity = minCapacity;
+        if (newCapacity - MAX_ARRAY_SIZE > 0) //如果新容量比超过上限容量(Integer.MAX_VALUE - 8)，则新容量赋值为Integer.MAX_VALUE
+            newCapacity = hugeCapacity(minCapacity);
+        // minCapacity is usually close to size, so this is a win:
+        elementData = Arrays.copyOf(elementData, newCapacity);
+    }
+
+复制指定的数组到指定长度的新数组中。对于在原始数组和副本中都有效的所有索引，这两个数组将包含相同的值。
+对于在副本中有效但在原始副本中无效的任何索引，副本将包含null。（比原先数组多出来的部分赋值为null）
+java.util.Arrays#copyOf(T[], int)
+java.util.Arrays#copyOf(U[], int, java.lang.Class<? extends T[]>)
+
+    public static <T,U> T[] copyOf(U[] original, int newLength, Class<? extends T[]> newType) {
+        @SuppressWarnings("unchecked")
+        // 判断要赋值的数组类型是否为Object类，如果是，则创建指定长度的Object类数组
+        // 如果不是，则Array.newInstance创建指定类型、长度的数组
+        T[] copy = ((Object)newType == (Object)Object[].class)
+            ? (T[]) new Object[newLength]
+            : (T[]) Array.newInstance(newType.getComponentType(), newLength);
+        System.arraycopy(original, 0, copy, 0,
+                         Math.min(original.length, newLength));
+        return copy;
+    }
+    java.lang.Class#getComponentType返回表示数组组件类型的Class 。如果此类不表示数组类，则此方法返回 null。
+
+java.lang.System#arraycopy将指定源数组中的数组从指定位置开始复制到目标数组的指定位置
+    public static native void arraycopy(Object src,  int  srcPos,
+                                        Object dest, int destPos,
+                                        int length);
+    // dest的长度可以比src的小，但是length一定要≤dest的长度-destPos，也要≤src的长度-srcPos
+    // 对于引用类型而言复制的是引用
+
+//在此列表中的指定位置插入指定元素。将当前位于该位置的元素（如果有）和任何后续元素向右移动（将它们的索引加一）。
+java.util.ArrayList#add(int, E)
+    public void add(int index, E element) {
+        rangeCheckForAdd(index); //检查index是否符合要求（小于等于size并且大于等于0）
+
+        ensureCapacityInternal(size + 1);  // Increments modCount!!
+        //元素数据数组从index起复制到index+1，复制index后面的所有数据
+        System.arraycopy(elementData, index, elementData, index + 1,
+                         size - index);
+        elementData[index] = element;
+        size++;
+    }
+
+java.util.ArrayList#addAll(java.util.Collection<? extends E>)
+按照指定集合的​​迭代器返回的顺序，将指定集合中的所有元素附加到此列表的末尾。
+public boolean addAll(Collection<? extends E> c) {
+        Object[] a = c.toArray(); //如果是ArrayList，则调用Arrays.copyOf(elementData, size)
+        int numNew = a.length;
+        ensureCapacityInternal(size + numNew);  // Increments modCount
+        System.arraycopy(a, 0, elementData, size, numNew);
+        size += numNew;
+        return numNew != 0;
+    }
+
+java.util.ArrayList#addAll(int, java.util.Collection<? extends E>)
+将指定集合中的所有元素插入此列表，从指定位置开始。将当前位于该位置的元素（如果有）和任何后续元素向右移动（增加它们的索引）。新元素将按照指定集合的​​迭代器返回的顺序出现在列表中。
+    public boolean addAll(int index, Collection<? extends E> c) {
+        rangeCheckForAdd(index); //index必须≤size
+
+        Object[] a = c.toArray();
+        int numNew = a.length;
+        ensureCapacityInternal(size + numNew);  // Increments modCount
+
+        int numMoved = size - index; //如果index=0 size=2 numNew = 100 则复制从0开始的2个元素到从100开始
+        if (numMoved > 0)
+            System.arraycopy(elementData, index, elementData, index + numNew,
+                             numMoved);
+
+        System.arraycopy(a, 0, elementData, index, numNew);
+        size += numNew;
+        return numNew != 0;
+    }
+
+java.util.ArrayList#clear从此列表中删除所有元素。此调用返回后，列表将为空。
+    public void clear() {
+        modCount++;
+
+        // clear to let GC do its work
+        for (int i = 0; i < size; i++)
+            elementData[i] = null;
+
+        size = 0;
+    }
+
+java.util.ArrayList#clone 返回此ArrayList实例的浅表副本。 （元素本身不会被复制。）
+副本的elementData引用与主体一致
+    public Object clone() {
+        try {
+            ArrayList<?> v = (ArrayList<?>) super.clone();
+            v.elementData = Arrays.copyOf(elementData, size);
+            v.modCount = 0;
+            return v;
+        } catch (CloneNotSupportedException e) {
+            // this shouldn't happen, since we are Cloneable
+            throw new InternalError(e);
+        }
+    }
+
+java.util.ArrayList#contains 如果此列表包含指定元素，则返回true 
+    public boolean contains(Object o) {
+        return indexOf(o) >= 0;
+    }
+
+java.util.ArrayList#indexOf 
+返回此列表中指定元素第一次出现的索引，如果此列表不包含该元素，则返回 -1。
+更正式地说，返回满足(o==null ? get(i)==null : o.equals(get(i)))的最低索引i ，如果没有这样的索引，则返回 -1。
+    public int indexOf(Object o) {
+        if (o == null) {
+            for (int i = 0; i < size; i++)
+                if (elementData[i]==null)
+                    return i;
+        } else {
+            for (int i = 0; i < size; i++)
+                if (o.equals(elementData[i]))
+                    return i;
+        }
+        return -1;
+    }
+
+java.util.ArrayList#forEach
+    public void forEach(Consumer<? super E> action) {
+        Objects.requireNonNull(action);
+        final int expectedModCount = modCount;
+        @SuppressWarnings("unchecked")
+        final E[] elementData = (E[]) this.elementData;
+        final int size = this.size;
+        for (int i=0; modCount == expectedModCount && i < size; i++) {
+            action.accept(elementData[i]); //在这里把函数体方法运用到所有元素数据上
+        }
+        if (modCount != expectedModCount) {
+            throw new ConcurrentModificationException();
+        }
+    }
+
+java.util.ArrayList#ensureCapacity 手动增加ArrayList容量 minCapacity是所需的最小容量
+    public void ensureCapacity(int minCapacity) {
+        int minExpand = (elementData != DEFAULTCAPACITY_EMPTY_ELEMENTDATA)
+            // any size if not default element table
+            ? 0
+            // larger than default for default empty table. It's already
+            // supposed to be at default size.
+            : DEFAULT_CAPACITY;
+
+        if (minCapacity > minExpand) {
+            ensureExplicitCapacity(minCapacity);
+        }
+    }
+
+java.util.ArrayList#get 返回此列表中指定位置的元素。
+    public E get(int index) {
+        rangeCheck(index);
+
+        return elementData(index);
+    }
+
+    E elementData(int index) {
+        return (E) elementData[index];
+    }
+
+java.util.ArrayList#isEmpty 如果此列表不包含任何元素，则返回true 
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+java.util.ArrayList#lastIndexOf 返回此列表中指定元素最后一次出现的索引，如果此列表不包含该元素，则返回 -1。
+更正式地说，返回最高索引i使得(o==null ? get(i)==null : o.equals(get(i))) ，如果没有这样的索引，则返回 -1。
+    public int lastIndexOf(Object o) {
+        if (o == null) {
+            for (int i = size-1; i >= 0; i--) //倒序遍历
+                if (elementData[i]==null)
+                    return i;
+        } else {
+            for (int i = size-1; i >= 0; i--) //倒序遍历
+                if (o.equals(elementData[i]))
+                    return i;
+        }
+        return -1;
+    }
+
+java.util.ArrayList#remove(int) 移除此列表中指定位置的元素。将任何后续元素向左移动（从它们的索引中减去 1）。
+    public E remove(int index) {
+        rangeCheck(index);
+
+        modCount++;
+        E oldValue = elementData(index);
+
+        int numMoved = size - index - 1; //如果size为102 index为1 则numMoved为100
+        if (numMoved > 0)
+            System.arraycopy(elementData, index+1, elementData, index,
+                             numMoved);
+        elementData[--size] = null; // clear to let GC do its work 移除最后一个元素
+
+        return oldValue;
+    }
+
+java.util.ArrayList#remove(java.lang.Object) 从此列表中删除第一次出现的指定元素（如果存在）。
+如果列表不包含该元素，则它不变。更正式地说，删除具有最低索引i的元素，
+使得(o==null ? get(i)==null : o.equals(get(i))) （如果存在这样的元素）。
+如果此列表包含指定的元素（或等效地，如果此列表因调用而更改），则返回true 。
+    public boolean remove(Object o) {
+        if (o == null) {
+            for (int index = 0; index < size; index++)
+                if (elementData[index] == null) {
+                    fastRemove(index);
+                    return true;
+                }
+        } else {
+            for (int index = 0; index < size; index++)
+                if (o.equals(elementData[index])) {
+                    fastRemove(index);
+                    return true;
+                }
+        }
+        return false;
+    }
+    
+    //跳过边界检查且不返回已删除值的私有删除方法
+    private void fastRemove(int index) {
+        modCount++;
+        int numMoved = size - index - 1;
+        if (numMoved > 0)
+            System.arraycopy(elementData, index+1, elementData, index,
+                             numMoved);
+        elementData[--size] = null; // clear to let GC do its work
+    }
+
+java.util.ArrayList#removeAll 从此ArrayList中删除包含在指定集合中的所有元素
+    public boolean removeAll(Collection<?> c) {
+        Objects.requireNonNull(c);
+        return batchRemove(c, false);
+    }
+    private boolean batchRemove(Collection<?> c, boolean complement) {
+        final Object[] elementData = this.elementData;
+        int r = 0, w = 0;
+        boolean modified = false;
+        try {
+            for (; r < size; r++)
+                //当complement为false时，elementData只记录c中没有的元素数据
+                if (c.contains(elementData[r]) == complement) 
+                    elementData[w++] = elementData[r];
+        } finally {
+            // Preserve behavioral compatibility with AbstractCollection,
+            // even if c.contains() throws. 
+            // 保持与 AbstractCollection 的行为兼容性，即使 c.contains() 抛出。
+            if (r != size) {
+                System.arraycopy(elementData, r,
+                                 elementData, w,
+                                 size - r);
+                w += size - r;
+            }
+            if (w != size) {
+                // clear to let GC do its work
+                for (int i = w; i < size; i++)
+                    elementData[i] = null;
+                modCount += size - w;
+                size = w;
+                modified = true;
+            }
+        }
+        return modified;
+    }
+
+    java.util.ArrayList#removeIf 
+    删除此集合中满足给定谓词的所有元素。在迭代期间或由谓词引发的错误或运行时异常将转发给调用者。
+        public boolean removeIf(Predicate<? super E> filter) {
+        Objects.requireNonNull(filter);
+        // figure out which elements are to be removed
+        // any exception thrown from the filter predicate at this stage
+        // will leave the collection unmodified
+        int removeCount = 0;
+        final BitSet removeSet = new BitSet(size);
+        final int expectedModCount = modCount;
+        final int size = this.size;
+        for (int i=0; modCount == expectedModCount && i < size; i++) {
+            @SuppressWarnings("unchecked")
+            final E element = (E) elementData[i];
+            if (filter.test(element)) {
+                removeSet.set(i);
+                removeCount++;
+            }
+        }
+        if (modCount != expectedModCount) {
+            throw new ConcurrentModificationException();
+        }
+
+        // shift surviving elements left over the spaces left by removed elements
+        final boolean anyToRemove = removeCount > 0;
+        if (anyToRemove) {
+            final int newSize = size - removeCount;
+            for (int i=0, j=0; (i < size) && (j < newSize); i++, j++) {
+                i = removeSet.nextClearBit(i);
+                elementData[j] = elementData[i];
+            }
+            for (int k=newSize; k < size; k++) {
+                elementData[k] = null;  // Let gc do its work
+            }
+            this.size = newSize;
+            if (modCount != expectedModCount) {
+                throw new ConcurrentModificationException();
+            }
+            modCount++;
+        }
+
+        return anyToRemove;
+    }
