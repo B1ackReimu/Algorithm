@@ -1,0 +1,62 @@
+创建一个位集，其初始大小足够大，可以显式表示索引范围0到nbits-1的位。所有位最初都是false 。
+    public BitSet(int nbits) {
+        // nbits can't be negative; size 0 is OK
+        if (nbits < 0)
+            throw new NegativeArraySizeException("nbits < 0: " + nbits);
+
+        initWords(nbits);
+        sizeIsSticky = true; //“单词”的大小是否由用户指定。如果是这样，我们假设用户知道他在做什么，并努力保存它
+    }
+    private void initWords(int nbits) {
+        words = new long[wordIndex(nbits-1) + 1]; //words数组里的每一个word元素表示64个递增的数
+    }
+
+    // 给定一个位索引，返回包含它的单词索引。
+    private static int wordIndex(int bitIndex) {
+        return bitIndex >> ADDRESS_BITS_PER_WORD; // ADDRESS_BITS_PER_WORD = 6 这里是6的原因是2的6次方等于64，64是一个字长
+    }
+
+java.util.BitSet#set(int) 将指定索引处的位设置为true 。
+    public void set(int bitIndex) {
+        if (bitIndex < 0)
+            throw new IndexOutOfBoundsException("bitIndex < 0: " + bitIndex);
+
+        int wordIndex = wordIndex(bitIndex);
+        expandTo(wordIndex);
+
+        words[wordIndex] |= (1L << bitIndex); // Restores invariants 或操作
+
+        checkInvariants();
+    }
+
+    //每个公共方法都必须保留这些不变量。
+    private void checkInvariants() {
+        assert(wordsInUse == 0 || words[wordsInUse - 1] != 0);
+        assert(wordsInUse >= 0 && wordsInUse <= words.length);
+        assert(wordsInUse == words.length || words[wordsInUse] == 0);
+    }
+
+java.util.BitSet#nextClearBit 返回设置为false的第一个位的索引，该位出现在指定的起始索引上或之后
+    public int nextClearBit(int fromIndex) {
+        // Neither spec nor implementation handle bitsets of maximal length.
+        // See 4816253.
+        if (fromIndex < 0)
+            throw new IndexOutOfBoundsException("fromIndex < 0: " + fromIndex);
+
+        checkInvariants();
+
+        int u = wordIndex(fromIndex);
+        if (u >= wordsInUse) // wordsInUse是此BitSet的逻辑大小中的字数
+            return fromIndex;
+
+        long word = ~words[u] & (WORD_MASK << fromIndex); // WORD_MASK = 0xffffffffffffffffL 用于部分字掩码左移或右移
+
+        while (true) {
+            if (word != 0)
+                return (u * BITS_PER_WORD) + Long.numberOfTrailingZeros(word); //Long.numberOfTrailingZeros 
+                //返回指定long值的二进制补码表示中最低位（“最右边”）一位之后的零位的数量。如果指定的值在其二进制补码表示中没有一位，则返回 64，换句话说，如果它等于 0。
+            if (++u == wordsInUse)
+                return wordsInUse * BITS_PER_WORD;
+            word = ~words[u];
+        }
+    }
